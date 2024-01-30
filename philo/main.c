@@ -6,7 +6,7 @@
 /*   By: souaguen <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/01/26 23:25:02 by souaguen          #+#    #+#             */
-/*   Updated: 2024/01/29 17:33:17 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/01/30 03:32:00 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,8 @@ typedef struct s_fork
 
 typedef struct s_thread_info 
 {
-	pthread_t	thread;
+	pthread_t		thread;	
+	pthread_mutex_t		*locked;
 	unsigned long		start_at;
 	unsigned int		id;
 	unsigned int		n_forks;
@@ -52,56 +53,87 @@ void	*start_routine(void *arg)
 	int		next_fork;
 	int		current_fork;
 	int		n_fork_taken;
-	int		think;
+	int		think;	
+	int		i;
 	t_fork		*forks;
 	unsigned long		start;
 	
 	self = arg;
-	think = 0;
+	think = 1;
 	forks = (*self).forks;
-	while (*(*self).started == 0)
-		usleep(1);
 	next_fork = (*self).id % (*self).n_forks;
 	current_fork = (*self).id - 1;
 	start = get_timestamp_ms();
-	while ((get_timestamp_ms() - start) < (*self).time_to_die)
+	i = 0;
+	while ((get_timestamp_ms() - start) < (*self).time_to_die && i < 10)
 	{
+		
+
+		pthread_mutex_lock((*self).locked);
 		if (forks[current_fork].free_fork == 0 && forks[next_fork].free_fork == 0)
 		{
-			forks[current_fork].free_fork = 1;
-			pthread_mutex_lock(&forks[current_fork].mut);
-			printf("%015ld %3d has taken a fork\n", get_timestamp_ms() - (*self).start_at, (*self).id);
-			forks[next_fork].free_fork = 1;
-			pthread_mutex_lock(&forks[next_fork].mut);	
-			printf("%015ld %3d has taken a fork\n", get_timestamp_ms() - (*self).start_at, (*self).id);
-			printf("%015ld %3d is eating\n", get_timestamp_ms() - (*self).start_at, (*self).id);
+			printf("%015ld %3d has taken a fork\n", get_timestamp_ms() - (*self).start_at, (*self).id);	
+			(*self).forks[current_fork].free_fork = 1;
+			printf("%015ld %3d has taken a fork\n", get_timestamp_ms() - (*self).start_at, (*self).id);	
+			(*self).forks[next_fork].free_fork = 1;	
+			printf("%015ld %3d is eating\n", get_timestamp_ms() - (*self).start_at, (*self).id);	
+			pthread_mutex_unlock((*self).locked);
 			usleep((*self).time_to_eat);
+			pthread_mutex_lock((*self).locked);	
+			(*self).forks[current_fork].free_fork = 0;
+			(*self).forks[next_fork].free_fork = 0;
 			start = get_timestamp_ms();
-			pthread_mutex_unlock(&forks[current_fork].mut);	
-			forks[current_fork].free_fork = 0;
-			pthread_mutex_unlock(&forks[next_fork].mut);	
-			forks[next_fork].free_fork = 0;
-			printf("%015ld %3d is sleeping\n", get_timestamp_ms() - (*self).start_at, (*self).id);
-			usleep((*self).time_to_sleep);
-			think = 0;
-		}
-		else if (think == 0)
-		{
+			printf("%015ld %3d is sleeping\n", get_timestamp_ms() - (*self).start_at, (*self).id);			
 			think = 1;
-			printf("%015ld %3d is thinking\n", get_timestamp_ms() - (*self).start_at, (*self).id);
+			pthread_mutex_unlock((*self).locked);
+			usleep((*self).time_to_sleep);
 		}
-		usleep(10);
+		else
+		{
+			if (think == 1)
+			{
+				printf("%015ld %3d is thinking\n", get_timestamp_ms() - (*self).start_at, (*self).id);
+				think = 0;
+			}
+			pthread_mutex_unlock((*self).locked);
+		}
+		i++;
+		//	pthread_mutex_unlock((*self).locked);
+		//	forks[next_fork].free_fork = 1;
+		//	printf("%015ld %3d has taken a fork\n", get_timestamp_ms() - (*self).start_at, (*self).id);
+		//	start = get_timestamp_ms();
+		//	forks[current_fork].free_fork = 0;
+		//	forks[next_fork].free_fork = 0;
+		//	pthread_mutex_unlock(&forks[next_fork].mut);
+		//	pthread_mutex_unlock(&forks[current_fork].mut);
+		//	printf("%015ld %3d is sleeping\n", get_timestamp_ms() - (*self).start_at, (*self).id);
+		//	usleep((*self).time_to_sleep);
+		//	think = 0;
+		//}
+		//else if (think == 0)
+		//{
+		//	think = 1;
+		//	printf("%015ld %3d is thinking\n", get_timestamp_ms() - (*self).start_at, (*self).id);	
+		//}		
+		usleep(1);
 	}
+	
+	pthread_mutex_lock((*self).locked);
 	printf("%015ld %3d died\n", get_timestamp_ms() - (*self).start_at, (*self).id);
+		
+//	printf("Hello World\n");	
+	pthread_mutex_unlock((*self).locked);
 	return (NULL);
 }
 
 int	main(int argc, char **argv)
 {
 	t_thread_info	philo[4];
+	pthread_mutex_t	mutex;
 	t_fork			*forks;
 	int			i;
 	int			*started;
+	unsigned long		start_at;
 
 	i = -1;
 	forks = malloc(sizeof(t_fork) * 4);
@@ -110,28 +142,37 @@ int	main(int argc, char **argv)
 	while ((++i) < 4)
 	{
 		forks[i].free_fork = 0;
-		pthread_mutex_init(&forks[i].mut, NULL);
+		//pthread_mutex_init(&forks[i].mut, NULL);
 	}
 	started = malloc(sizeof(int));
 	if (started == NULL)
 		return (2);
 	*started = 0;
 	i = -1;
+	pthread_mutex_init(&mutex, NULL);
+	start_at = get_timestamp_ms();
 	while ((++i) < 4)
 	{
 		philo[i].id = i + 1;
 		philo[i].n_forks = 4;
 		philo[i].forks = forks;
-		philo[i].time_to_eat = 1000;
+		philo[i].time_to_eat = 400;
 		philo[i].time_to_die = 1000;
-		philo[i].time_to_sleep = 1000;
-		philo[i].start_at = get_timestamp_ms();
-		philo[i].started = started;
+		philo[i].time_to_sleep = 400;
+		philo[i].start_at = start_at;
+		philo[i].locked = &mutex;
 		pthread_create(&philo[i].thread, NULL, &start_routine, &philo[i]);
 	}
-	*started = 1;
 	i = -1;
+	*started = 1;
 	while ((++i) < 4)
+	{
+
+		//pthread_mutex_destroy(&forks[i].mut);
 		pthread_join(philo[i].thread, NULL);
+	}	
+	pthread_mutex_destroy(&mutex);
+	free(forks);
+	free(started);
 	return (0);
 }
