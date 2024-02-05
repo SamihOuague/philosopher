@@ -6,7 +6,7 @@
 /*   By: souaguen <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/01/26 23:25:02 by souaguen          #+#    #+#             */
-/*   Updated: 2024/01/31 04:24:00 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/02/05 21:27:13 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -84,7 +84,15 @@ void	*start_routine(void *arg)
 	next_fork = (*self).id % (*self).n_forks;
 	current_fork = (*self).id - 1;
 	start = (*self).start_at;
-	while ((*self).n_forks >= 1 && (i < (*self).n_time_eat) && (get_timestamp_ms() - start) < (*self).time_to_die)
+	while ((*self).n_forks >= 1 && (get_timestamp_ms() - start) < (*self).time_to_die)
+	{
+		pthread_mutex_lock(&forks[next_fork].mut);
+		if (forks[next_fork].free_fork == 0)
+			forks[next_fork].free_fork = 1;
+		pthread_mutex_unlock(&forks[next_fork].mut);
+	}
+	//printf("%d died\n", (*self).id);
+/*	while ((*self).n_forks >= 1 && (i < (*self).n_time_eat) && (get_timestamp_ms() - start) < (*self).time_to_die)
 	{
 		pthread_mutex_lock((*self).locked);
 		if (*(*self).started == 0)
@@ -148,7 +156,7 @@ void	*start_routine(void *arg)
 		printf("%015ld %3d died\n", get_timestamp_ms() - (*self).start_at, (*self).id);
 		*(*self).started = 0;
 	}
-	pthread_mutex_unlock((*self).locked);
+	pthread_mutex_unlock((*self).locked);*/
 	return (NULL);
 }
 
@@ -169,7 +177,10 @@ int	main(int argc, char **argv)
 	if (forks == NULL)
 		return (1);
 	while ((++i) < ft_atoi(argv[1]))
+	{
 		forks[i].free_fork = 0;
+		pthread_mutex_init(&forks[i].mut, NULL);
+	}
 	started = malloc(sizeof(int));
 	if (started == NULL)
 		return (2);
