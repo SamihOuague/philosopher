@@ -6,12 +6,12 @@
 #    By: souaguen <marvin@42.fr>                    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/01/31 01:35:37 by souaguen          #+#    #+#              #
-#    Updated: 2024/02/07 01:16:09 by souaguen         ###   ########.fr        #
+#    Updated: 2024/02/08 00:07:33 by souaguen         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 CC=cc
-CFLAGS=-g -pthread#-Wall -Werror -Wextra
+CFLAGS=-g -pthread #-Weverything
 SRC=main.c
 OBJ=$(SRC:.c=.o)
 NAME=philo
