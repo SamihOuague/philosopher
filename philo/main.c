@@ -6,7 +6,7 @@
 /*   By: souaguen <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/07 19:54:41 by  souaguen         #+#    #+#             */
-/*   Updated: 2024/02/08 10:31:17 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/02/09 19:58:56 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,6 +31,16 @@ int	ft_atoi(char *str)
 	return (n * sign);
 }
 
+unsigned long   get_timestamp_ms()
+{
+	struct timeval  tv;
+	unsigned long   ms_timestamp;
+
+	gettimeofday(&tv, NULL);
+	ms_timestamp = (tv.tv_sec * 1000000) + tv.tv_usec;
+	return (ms_timestamp);
+}
+
 void	ft_putstr_fd(char *str, int fd)
 {
 	int	i;
@@ -50,7 +60,15 @@ void	*forks_init(unsigned int n_philo)
 	if (forks == NULL)
 		return (NULL);
 	while ((++i) < n_philo)
+	{
 		forks[i].free_fork = 0;
+		if (pthread_mutex_init(&forks[i].mut, NULL) != 0)
+		{
+			while ((--i) >= 0)
+				pthread_mutex_destroy(&forks[i].mut);
+			return (NULL);
+		}
+	}
 	return (forks);
 }
 
@@ -82,46 +100,63 @@ void	*philo_info_init(int argc, char **argv)
 	return (philo);
 }
 
-int	philo_mutex_init(t_thread_info *philo, unsigned int n_philo)
+int	philo_mutex_destroy(t_mutex_event *mutex)
 {
-	int	i;
-
-	i = -1;
-	while ((++i) < n_philo)
-	{
-		if (pthread_mutex_init(&philo[i].eat_lock, NULL) == 0)
-			return (0);
-		if (pthread_mutex_init(&philo[i].die_lock, NULL) == 0)
-			return (0);
-		if (pthread_mutex_init(&philo[i].sleep_lock, NULL) == 0)
-			return (0);
-		if (pthread_mutex_init(&philo[i].forks[i].mut, NULL) == 0)
-			return (0);
-	}
-	return (1);
+	if (pthread_mutex_destroy(&(*mutex).eat_lock) != 0)
+		return (1);
+	else if (pthread_mutex_destroy(&(*mutex).die_lock) != 0)
+		return (1);
+	else if (pthread_mutex_destroy(&(*mutex).sleep_lock) != 0)
+		return (1);
+	return (0);
 }
 
-void	philo_mutex_destroy(t_thread_info *philo, unsigned int n_philo)
+int	philo_mutex_init(t_mutex_event *mutex)
 {
-	int	i;
-
-	i = -1;
-	while ((++i) < n_philo)
-	{
-		pthread_mutex_destroy(&philo[i].eat_lock);
-		pthread_mutex_destroy(&philo[i].die_lock);
-		pthread_mutex_destroy(&philo[i].sleep_lock);
-		pthread_mutex_destroy(&philo[i].forks[i].mut);
-	}
+	pthread_mutex_init(&(*mutex).eat_lock, NULL);
+	pthread_mutex_init(&(*mutex).die_lock, NULL);
+	pthread_mutex_init(&(*mutex).sleep_lock, NULL);
+	return (0);
 }
 
+void	free_forks(t_fork *forks, int n_forks)
+{
+	int	i;
+	
+	i = -1;
+	while ((++i) < n_forks)
+		pthread_mutex_destroy(&forks[i].mut);
+	free(forks);
+}
 
+void	*start_routine(void *arg)
+{
+	unsigned long	start;
+	t_thread_info	*self;
+	t_mutex_event	*event_mut;
+	t_fork		*forks;
+	
+	self = (t_thread_info *) arg;
+	event_mut = (*self).event_mutex;
+	forks = (*self).forks;
+	start = (*self).started_at;
+	while ((get_timestamp_ms() - start) < (*self).time_to_die)
+	{
+		pthread_mutex_lock(&(*event_mut).eat_lock);
+		printf("%ld %d says hello\n", get_timestamp_ms() - start, (*self).id);
+		pthread_mutex_unlock(&(*event_mut).eat_lock);
+		usleep((*self).time_to_eat);
+	}
+	return (NULL);
+}
 
 int	main(int argc, char **argv)
 {
 	t_thread_info	*philo;
+	t_mutex_event	*event_mutex;
 	unsigned int	n_philo;
 	unsigned int	i;
+	unsigned long	start;
 
 	if (argc < 5 || argc > 6)
 	{
@@ -129,11 +164,26 @@ int	main(int argc, char **argv)
 		ft_putstr_fd("[time to sleep] (optional)[N time to eat]\n", 2);
 		return (1);
 	}	
+	event_mutex = malloc(sizeof(t_mutex_event));
+	if (event_mutex == NULL)
+		return (1);
+	i = -1;
 	n_philo = ft_atoi(argv[1]);
 	philo = philo_info_init(argc, argv);
-	philo_mutex_init(philo, n_philo);
-	philo_mutex_destroy(philo, n_philo);
-	free(philo[0].forks);
+	philo_mutex_init(event_mutex);
+	start = get_timestamp_ms();
+	while ((++i) < n_philo)
+	{
+		philo[i].started_at = start;
+		philo[i].event_mutex = event_mutex;
+		pthread_create(&philo[i].thread, NULL, &start_routine, &philo[i]);
+	}
+	i = -1;
+	while ((++i) < n_philo)
+		pthread_join(philo[i].thread, NULL);
+	philo_mutex_destroy(event_mutex);
+	free_forks(philo[0].forks, n_philo);
 	free(philo);
+	free(event_mutex);
 	return (0);
 }
