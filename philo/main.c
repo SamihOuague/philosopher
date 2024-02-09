@@ -6,7 +6,7 @@
 /*   By: souaguen <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/07 19:54:41 by  souaguen         #+#    #+#             */
-/*   Updated: 2024/02/09 19:58:56 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/02/09 22:42:25 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -129,23 +129,89 @@ void	free_forks(t_fork *forks, int n_forks)
 	free(forks);
 }
 
+int	give_back_fork(t_fork *forks, unsigned int id)
+{
+	if (pthread_mutex_lock(&forks[id].mut) != 0)
+		return (0);
+	forks[id].free_fork = 0;
+	pthread_mutex_unlock(&forks[id].mut);
+	return (1);
+}
+
+int	take_a_fork(t_fork *forks, unsigned int id, unsigned int n_fork)
+{
+	int	current_fork;
+	int	next_fork;
+
+	current_fork = id - 1;
+	next_fork = id % n_fork;	
+	if (pthread_mutex_lock(&forks[current_fork].mut) != 0)
+		return (0);
+	//printf("%d %d - ", current_fork, next_fork);
+	//printf("%d %d\n", forks[current_fork].free_fork, forks[next_fork].free_fork);
+	if (forks[current_fork].free_fork == 0)
+		forks[current_fork].free_fork = 1;
+	else
+		return (pthread_mutex_unlock(&forks[current_fork].mut));
+	pthread_mutex_unlock(&forks[current_fork].mut);
+	if (pthread_mutex_lock(&forks[next_fork].mut) != 0)
+	{
+		give_back_fork(forks, current_fork);
+		return (0);
+	}
+	if (forks[next_fork].free_fork == 0)
+		forks[next_fork].free_fork = 1;
+	else
+		return (pthread_mutex_unlock(&forks[next_fork].mut));
+	pthread_mutex_unlock(&forks[next_fork].mut);
+	return (1);
+}
+
 void	*start_routine(void *arg)
 {
 	unsigned long	start;
 	t_thread_info	*self;
 	t_mutex_event	*event_mut;
 	t_fork		*forks;
+	int		think;
 	
 	self = (t_thread_info *) arg;
 	event_mut = (*self).event_mutex;
 	forks = (*self).forks;
 	start = (*self).started_at;
+	think = 0;
 	while ((get_timestamp_ms() - start) < (*self).time_to_die)
 	{
-		pthread_mutex_lock(&(*event_mut).eat_lock);
-		printf("%ld %d says hello\n", get_timestamp_ms() - start, (*self).id);
-		pthread_mutex_unlock(&(*event_mut).eat_lock);
-		usleep((*self).time_to_eat);
+		if (take_a_fork(forks, (*self).id, (*self).n_fork) == 1)
+		{
+			if (!pthread_mutex_lock(&(*event_mut).eat_lock))
+			{
+				printf("%ld %d has taken a fork\n", get_timestamp_ms() - start, (*self).id);
+				printf("%ld %d is eating\n", get_timestamp_ms() - start, (*self).id);
+				pthread_mutex_unlock(&(*event_mut).eat_lock);
+				usleep((*self).time_to_eat);
+				give_back_fork(forks, (*self).id - 1);
+				give_back_fork(forks, (*self).id % (*self).n_fork);
+			}	
+			if (!pthread_mutex_lock(&(*event_mut).eat_lock))
+			{
+				printf("%ld %d is sleeping\n", get_timestamp_ms() - start, (*self).id);
+				pthread_mutex_unlock(&(*event_mut).eat_lock);
+				usleep((*self).time_to_sleep);
+			}
+			
+		}
+		else if (think == 1)
+		{
+			think = 0;
+			if (!pthread_mutex_lock(&(*event_mut).eat_lock))
+			{
+				//printf("%ld %d is thinking\n", get_timestamp_ms() - start, (*self).id);
+				pthread_mutex_unlock(&(*event_mut).eat_lock);
+			}
+		}
+		else
+			think = 1;
 	}
 	return (NULL);
 }
