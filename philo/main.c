@@ -6,7 +6,7 @@
 /*   By: souaguen <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/07 19:54:41 by  souaguen         #+#    #+#             */
-/*   Updated: 2024/02/09 22:42:25 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/02/10 05:58:16 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -182,36 +182,39 @@ void	*start_routine(void *arg)
 	think = 0;
 	while ((get_timestamp_ms() - start) < (*self).time_to_die)
 	{
-		if (take_a_fork(forks, (*self).id, (*self).n_fork) == 1)
+		if (think == 1 && !pthread_mutex_lock(&(*event_mut).eat_lock))
+		{
+			think = 2;
+			printf("%ld %d is thinking\n", get_timestamp_ms() - (*self).started_at, (*self).id);
+			pthread_mutex_unlock(&(*event_mut).eat_lock);
+		}
+		else if (take_a_fork(forks, (*self).id, (*self).n_fork) == 1)
 		{
 			if (!pthread_mutex_lock(&(*event_mut).eat_lock))
 			{
-				printf("%ld %d has taken a fork\n", get_timestamp_ms() - start, (*self).id);
-				printf("%ld %d is eating\n", get_timestamp_ms() - start, (*self).id);
+				printf("%ld %d has taken a fork\n", get_timestamp_ms() - (*self).started_at, (*self).id);
+				printf("%ld %d is eating\n", get_timestamp_ms() - (*self).started_at, (*self).id);
 				pthread_mutex_unlock(&(*event_mut).eat_lock);
 				usleep((*self).time_to_eat);
-				give_back_fork(forks, (*self).id - 1);
-				give_back_fork(forks, (*self).id % (*self).n_fork);
-			}	
+				start = get_timestamp_ms();
+			}
+			give_back_fork(forks, (*self).id - 1);
+			give_back_fork(forks, (*self).id % (*self).n_fork);
 			if (!pthread_mutex_lock(&(*event_mut).eat_lock))
 			{
-				printf("%ld %d is sleeping\n", get_timestamp_ms() - start, (*self).id);
+				printf("%ld %d is sleeping\n", get_timestamp_ms() - (*self).started_at, (*self).id);
 				pthread_mutex_unlock(&(*event_mut).eat_lock);
 				usleep((*self).time_to_sleep);
 			}
-			
-		}
-		else if (think == 1)
-		{
 			think = 0;
-			if (!pthread_mutex_lock(&(*event_mut).eat_lock))
-			{
-				//printf("%ld %d is thinking\n", get_timestamp_ms() - start, (*self).id);
-				pthread_mutex_unlock(&(*event_mut).eat_lock);
-			}
 		}
-		else
+		else if (think != 2)
 			think = 1;
+	}
+	if (!pthread_mutex_lock(&(*event_mut).eat_lock))
+	{
+		printf("%ld %d died\n", get_timestamp_ms() - (*self).started_at, (*self).id);
+		pthread_mutex_unlock(&(*event_mut).eat_lock);
 	}
 	return (NULL);
 }
