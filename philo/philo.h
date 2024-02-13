@@ -6,7 +6,7 @@
 /*   By: souaguen <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/07 19:55:00 by  souaguen         #+#    #+#             */
-/*   Updated: 2024/02/13 03:47:31 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/02/13 07:30:02 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,6 +32,7 @@ typedef struct s_thread_info
 	unsigned int	time_to_eat;
 	unsigned int	time_to_die;
 	unsigned int	n_fork;
+	pthread_mutex_t	*meal_lock;
 	unsigned long	last_meal;
 	unsigned long	*started_at;
 	unsigned int	n_time_eat;
