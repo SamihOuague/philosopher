@@ -5,254 +5,208 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: souaguen <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/02/07 19:54:41 by  souaguen         #+#    #+#             */
-/*   Updated: 2024/02/10 05:58:16 by souaguen         ###   ########.fr       */
+/*   Created: 2024/02/12 00:48:28 by  souaguen         #+#    #+#             */
+/*   Updated: 2024/02/13 05:20:21 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
 
-int	ft_atoi(char *str)
+void	precision_sleep(unsigned long *checkpoint, unsigned int *time_to_sleep)
 {
-	int	n;
-	int	i;
-	int	sign;
+	long	t;
 
-	n = 0;
-	i = 0;
-	sign = 1;
-	if (*(str) == '-')
+	t = (long)(*time_to_sleep);// - ((long)get_timestamp_ms() - (long)(*checkpoint));
+	//if (t <= 0 || t > *time_to_sleep)
+	//	return ;
+	usleep(*time_to_sleep * 1000);
+}
+
+int	locked_printf(char *format, t_thread_info *self)
+{
+	int	dead;
+
+	dead = 0;
+	pthread_mutex_lock((*self).locked);
+	if (*(*self).deadbeef == 1)
 	{
-		sign *= -1;
-		i++;
+		pthread_mutex_unlock((*self).locked);
+		return (0);
 	}
-	while (*(str + i) >= '0' && *(str + i) <= '9')
-		n = (n * 10) + (*(str + (i++)) - '0');
-	return (n * sign);
+	printf(format, get_timestamp_ms() - *(*self).started_at, (*self).id);
+	pthread_mutex_unlock((*self).locked);
+	return (1);
 }
 
-unsigned long   get_timestamp_ms()
+long	take_forks(t_thread_info *self)
 {
-	struct timeval  tv;
-	unsigned long   ms_timestamp;
-
-	gettimeofday(&tv, NULL);
-	ms_timestamp = (tv.tv_sec * 1000000) + tv.tv_usec;
-	return (ms_timestamp);
-}
-
-void	ft_putstr_fd(char *str, int fd)
-{
-	int	i;
-
-	i = -1;
-	while (*(str + (++i)) != '\0')
-		write(fd, (str + i), 1);
-}
-
-void	*forks_init(unsigned int n_philo)
-{
-	int	i;
-	t_fork	*forks;
-
-	i = -1;
-	forks = malloc(sizeof(t_fork) * n_philo);
-	if (forks == NULL)
-		return (NULL);
-	while ((++i) < n_philo)
-	{
-		forks[i].free_fork = 0;
-		if (pthread_mutex_init(&forks[i].mut, NULL) != 0)
-		{
-			while ((--i) >= 0)
-				pthread_mutex_destroy(&forks[i].mut);
-			return (NULL);
-		}
-	}
-	return (forks);
-}
-
-void	*philo_info_init(int argc, char **argv)
-{
-	int		i;
-	int		n_philo;
-	t_thread_info	*philo;
 	t_fork		*forks;
+	unsigned long	checkpoint;
+	int		current_fork;
+	int		next_fork;
 
-	i = -1;
-	n_philo = ft_atoi(argv[1]);
-	philo = malloc(sizeof(t_thread_info) * n_philo);
-	forks = forks_init(n_philo);
-	if (philo == NULL || forks == NULL)
-		return (NULL);
-	while ((++i) < n_philo)
+	forks = (*self).forks;
+	current_fork = (*self).id - 1;
+	next_fork = (*self).id % (*self).n_fork;
+	if ((*self).id % 2 == 0)
 	{
-		philo[i].id = i + 1;
-		philo[i].time_to_die = ft_atoi(argv[2]);
-		philo[i].time_to_eat = ft_atoi(argv[3]);
-		philo[i].time_to_sleep = ft_atoi(argv[4]);
-		philo[i].n_time_eat = -1;
-		philo[i].n_fork = n_philo;
-		philo[i].forks = forks;
-		if (argc == 6)
-			philo[i].n_time_eat = ft_atoi(argv[5]);
+		current_fork = next_fork;
+		next_fork = (*self).id - 1;
 	}
-	return (philo);
+	checkpoint = get_timestamp_ms();
+	if ((get_timestamp_ms() - (*self).last_meal) > (*self).time_to_die)
+		return (-1);
+	pthread_mutex_lock(&forks[current_fork].mut);
+	if (!locked_printf("%ld %d has taken a fork\n", self))
+	{
+		pthread_mutex_unlock(&forks[current_fork].mut);
+		return (-1);
+	}
+	pthread_mutex_lock(&forks[next_fork].mut);
+	if (!locked_printf("%ld %d has taken a fork\n", self))
+	{
+		pthread_mutex_unlock(&forks[current_fork].mut);
+		pthread_mutex_unlock(&forks[next_fork].mut);
+		return (-1);
+	}
+	return (get_timestamp_ms());
 }
 
-int	philo_mutex_destroy(t_mutex_event *mutex)
+long	start_eating(t_thread_info *self, unsigned long *checkpoint)
 {
-	if (pthread_mutex_destroy(&(*mutex).eat_lock) != 0)
-		return (1);
-	else if (pthread_mutex_destroy(&(*mutex).die_lock) != 0)
-		return (1);
-	else if (pthread_mutex_destroy(&(*mutex).sleep_lock) != 0)
-		return (1);
-	return (0);
-}
+	t_fork		*forks;
+	int		current_fork;
+	int		next_fork;
 
-int	philo_mutex_init(t_mutex_event *mutex)
-{
-	pthread_mutex_init(&(*mutex).eat_lock, NULL);
-	pthread_mutex_init(&(*mutex).die_lock, NULL);
-	pthread_mutex_init(&(*mutex).sleep_lock, NULL);
-	return (0);
-}
-
-void	free_forks(t_fork *forks, int n_forks)
-{
-	int	i;
-	
-	i = -1;
-	while ((++i) < n_forks)
-		pthread_mutex_destroy(&forks[i].mut);
-	free(forks);
-}
-
-int	give_back_fork(t_fork *forks, unsigned int id)
-{
-	if (pthread_mutex_lock(&forks[id].mut) != 0)
-		return (0);
-	forks[id].free_fork = 0;
-	pthread_mutex_unlock(&forks[id].mut);
-	return (1);
-}
-
-int	take_a_fork(t_fork *forks, unsigned int id, unsigned int n_fork)
-{
-	int	current_fork;
-	int	next_fork;
-
-	current_fork = id - 1;
-	next_fork = id % n_fork;	
-	if (pthread_mutex_lock(&forks[current_fork].mut) != 0)
-		return (0);
-	//printf("%d %d - ", current_fork, next_fork);
-	//printf("%d %d\n", forks[current_fork].free_fork, forks[next_fork].free_fork);
-	if (forks[current_fork].free_fork == 0)
-		forks[current_fork].free_fork = 1;
-	else
-		return (pthread_mutex_unlock(&forks[current_fork].mut));
+	forks = (*self).forks;
+	current_fork = (*self).id - 1;
+	next_fork = (*self).id % (*self).n_fork;
+	(*self).last_meal = get_timestamp_ms();
+	if (!locked_printf("%ld %d is eating\n", self))
+	{
+		pthread_mutex_unlock(&forks[current_fork].mut);
+		pthread_mutex_unlock(&forks[next_fork].mut);
+		return (-1);
+	}
+	precision_sleep(checkpoint, &(*self).time_to_eat);
 	pthread_mutex_unlock(&forks[current_fork].mut);
-	if (pthread_mutex_lock(&forks[next_fork].mut) != 0)
-	{
-		give_back_fork(forks, current_fork);
-		return (0);
-	}
-	if (forks[next_fork].free_fork == 0)
-		forks[next_fork].free_fork = 1;
-	else
-		return (pthread_mutex_unlock(&forks[next_fork].mut));
 	pthread_mutex_unlock(&forks[next_fork].mut);
+	return (get_timestamp_ms());
+}
+
+int	start_sleeping(t_thread_info *self, unsigned long *checkpoint)
+{
+	unsigned int	time_to_sleep;
+
+	time_to_sleep = (*self).time_to_sleep;
+	locked_printf("%ld %d is sleeping\n", self);
+	if ((get_timestamp_ms() + time_to_sleep) - (*self).last_meal >= (*self).time_to_die)
+	{
+		time_to_sleep = (*self).time_to_die - (get_timestamp_ms() - (*self).last_meal);
+		precision_sleep(checkpoint, &time_to_sleep);
+		return (-1);
+	}
+	precision_sleep(checkpoint, &time_to_sleep);
 	return (1);
+}
+
+void	philo_dead(t_thread_info *self)
+{
+
+	pthread_mutex_lock((*self).locked);
+	if (*(*self).deadbeef == 1)
+	{
+		pthread_mutex_unlock((*self).locked);
+		return ;
+	}
+	*(*self).deadbeef = 1;
+	printf("%ld %d died\n", get_timestamp_ms() - *(*self).started_at, (*self).id);
+	pthread_mutex_unlock((*self).locked);
 }
 
 void	*start_routine(void *arg)
 {
+	t_thread_info *self;
+	long	checkpoint;
 	unsigned long	start;
-	t_thread_info	*self;
-	t_mutex_event	*event_mut;
+	int		i;
 	t_fork		*forks;
-	int		think;
-	
-	self = (t_thread_info *) arg;
-	event_mut = (*self).event_mutex;
+
+	i = 0;
+	self = arg;
 	forks = (*self).forks;
-	start = (*self).started_at;
-	think = 0;
-	while ((get_timestamp_ms() - start) < (*self).time_to_die)
+	start = *(*self).started_at;
+	if ((*self).n_fork == 1)
 	{
-		if (think == 1 && !pthread_mutex_lock(&(*event_mut).eat_lock))
-		{
-			think = 2;
-			printf("%ld %d is thinking\n", get_timestamp_ms() - (*self).started_at, (*self).id);
-			pthread_mutex_unlock(&(*event_mut).eat_lock);
-		}
-		else if (take_a_fork(forks, (*self).id, (*self).n_fork) == 1)
-		{
-			if (!pthread_mutex_lock(&(*event_mut).eat_lock))
-			{
-				printf("%ld %d has taken a fork\n", get_timestamp_ms() - (*self).started_at, (*self).id);
-				printf("%ld %d is eating\n", get_timestamp_ms() - (*self).started_at, (*self).id);
-				pthread_mutex_unlock(&(*event_mut).eat_lock);
-				usleep((*self).time_to_eat);
-				start = get_timestamp_ms();
-			}
-			give_back_fork(forks, (*self).id - 1);
-			give_back_fork(forks, (*self).id % (*self).n_fork);
-			if (!pthread_mutex_lock(&(*event_mut).eat_lock))
-			{
-				printf("%ld %d is sleeping\n", get_timestamp_ms() - (*self).started_at, (*self).id);
-				pthread_mutex_unlock(&(*event_mut).eat_lock);
-				usleep((*self).time_to_sleep);
-			}
-			think = 0;
-		}
-		else if (think != 2)
-			think = 1;
+		pthread_mutex_lock(&forks[(*self).id - 1].mut);	
+		locked_printf("%ld %d is thinking\n", self);
+		locked_printf("%ld %d has taken a fork\n", self);
+		precision_sleep(&checkpoint, &(*self).time_to_die);
+		pthread_mutex_unlock(&forks[(*self).id - 1].mut);
+		philo_dead(self);
+		return (NULL);
 	}
-	if (!pthread_mutex_lock(&(*event_mut).eat_lock))
-	{
-		printf("%ld %d died\n", get_timestamp_ms() - (*self).started_at, (*self).id);
-		pthread_mutex_unlock(&(*event_mut).eat_lock);
+	checkpoint = get_timestamp_ms();
+	(*self).last_meal = get_timestamp_ms();
+	while (i != (*self).n_time_eat && (get_timestamp_ms() - (*self).last_meal) <= (*self).time_to_die)
+	{	
+		locked_printf("%ld %d is thinking\n", self);
+		checkpoint = get_timestamp_ms();
+		if ((get_timestamp_ms() - (*self).last_meal) > (*self).time_to_die)
+			break ;
+		if (take_forks(self) == -1)
+			break ;	
+		if (start_eating(self, &checkpoint) == -1)
+			break ; 	
+		i = i + 1;
+		if (start_sleeping(self, &checkpoint) == -1)
+			break ;
 	}
+	if (i != (*self).n_time_eat)
+		philo_dead(self);
 	return (NULL);
 }
 
-int	main(int argc, char **argv)
+void	run(t_thread_info *philo, int n_philo)
 {
-	t_thread_info	*philo;
-	t_mutex_event	*event_mutex;
-	unsigned int	n_philo;
-	unsigned int	i;
+	int		i;
 	unsigned long	start;
+	pthread_mutex_t	locked;
+	int		deadbeef;
+	int		started;
 
-	if (argc < 5 || argc > 6)
-	{
-		ft_putstr_fd("Usage: ./philo [N philos] [time to die] [time to eat] ", 2);
-		ft_putstr_fd("[time to sleep] (optional)[N time to eat]\n", 2);
-		return (1);
-	}	
-	event_mutex = malloc(sizeof(t_mutex_event));
-	if (event_mutex == NULL)
-		return (1);
 	i = -1;
-	n_philo = ft_atoi(argv[1]);
-	philo = philo_info_init(argc, argv);
-	philo_mutex_init(event_mutex);
+	deadbeef = 0;
+	started = 0;
+	pthread_mutex_init(&locked, NULL);	
 	start = get_timestamp_ms();
 	while ((++i) < n_philo)
 	{
-		philo[i].started_at = start;
-		philo[i].event_mutex = event_mutex;
+		philo[i].started_at = &start;
+		philo[i].locked = &locked;
+		philo[i].deadbeef = &deadbeef;
+		philo[i].started = &started;
 		pthread_create(&philo[i].thread, NULL, &start_routine, &philo[i]);
 	}
 	i = -1;
 	while ((++i) < n_philo)
 		pthread_join(philo[i].thread, NULL);
-	philo_mutex_destroy(event_mutex);
-	free_forks(philo[0].forks, n_philo);
+	pthread_mutex_destroy(&locked);
+}
+
+int	main(int argc, char **argv)
+{
+	int		n_philo;
+	t_thread_info	*philo;
+
+	if (!(argc == 5 || argc == 6))
+		return (1);
+	n_philo = ft_atoi(argv[1]);
+	philo = philo_info_init(argc, argv);
+	if (philo == NULL)
+		return (1);
+	run(philo, n_philo);
+	free_forks((*philo).forks, n_philo);
 	free(philo);
-	free(event_mutex);
 	return (0);
 }
