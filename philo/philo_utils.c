@@ -6,7 +6,7 @@
 /*   By: souaguen <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/12 00:28:47 by  souaguen         #+#    #+#             */
-/*   Updated: 2024/02/13 03:25:37 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/02/14 16:30:30 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,10 @@ void	*forks_init(unsigned int n_philo)
 	if (forks == NULL)
 		return (NULL);
 	while ((++i) < n_philo)
+	{
+		forks[i].free_fork = 0;
 		pthread_mutex_init(&forks[i].mut, NULL);
+	}
 	return (forks);
 }
 
@@ -50,6 +53,18 @@ void	*philo_info_init(int argc, char **argv)
 		philo[i].forks = forks;
 		if (argc == 6)
 			philo[i].n_time_eat = ft_atoi(argv[5]);
+		if (philo[i].time_to_die <= 0 || 
+			philo[i].time_to_eat <= 0 || 
+			philo[i].time_to_sleep <= 0 ||
+			(argc == 6 && ft_atoi(argv[5]) <= 0) ||
+			philo[i].time_to_die >= 100000 ||
+			philo[i].time_to_sleep >= 100000 ||
+			philo[i].time_to_eat >= 100000)
+		{
+			free(philo);
+			free(forks);
+			return (NULL);
+		}
 	}
 	return (philo);
 }
