@@ -6,7 +6,7 @@
 /*   By: souaguen <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/07 19:55:00 by  souaguen         #+#    #+#             */
-/*   Updated: 2024/02/14 17:49:09 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/02/16 05:39:05 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,31 +19,55 @@
 # include <pthread.h>
 # include <unistd.h>
 
-typedef struct s_fork
+typedef	struct s_list
+{
+	void		*content;
+	struct s_list	*next;
+}	t_list;
+
+typedef struct	s_fork
 {
 	pthread_mutex_t	mut;
 	int	free_fork;
 }	t_fork;
 
 typedef struct s_thread_info
-{
-	unsigned int	id;
+{	
 	pthread_t	thread;	
+	unsigned int	id;
 	unsigned int	time_to_sleep;
 	unsigned int	time_to_eat;
 	unsigned int	time_to_die;
 	unsigned int	n_fork;
 	unsigned int	eat_n;
-	pthread_mutex_t	*meal_lock;
-	pthread_mutex_t	*forks_lock;
 	unsigned long	last_meal;
 	unsigned long	*started_at;
 	unsigned int	n_time_eat;
 	int		*deadbeef;
-	int		*started;
-	pthread_mutex_t	*locked;
+	pthread_mutex_t	*locked;	
+	pthread_mutex_t	*msg_lock;
+	pthread_mutex_t	*meal_lock;
 	t_fork		*forks;
+	t_list		**msg_queue;
 }	t_thread_info;
+
+typedef struct s_monitor
+{
+	t_list		**msg_queue;
+	pthread_t	thread;
+	t_thread_info	*philos;
+	pthread_mutex_t	*locked;	
+	pthread_mutex_t	*msg_lock;
+	pthread_mutex_t	*meal_lock;
+	unsigned int	n_philo;
+}	t_monitor;
+
+typedef struct s_msg
+{
+	unsigned int	id;
+	unsigned int	status;
+	unsigned long	timestamp;
+}	t_msg;
 
 unsigned long	get_timestamp_ms();
 void		*fork_init(unsigned int n_philo);
