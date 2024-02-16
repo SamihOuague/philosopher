@@ -6,7 +6,7 @@
 /*   By: souaguen <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/07 19:55:00 by  souaguen         #+#    #+#             */
-/*   Updated: 2024/02/16 05:39:05 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/02/16 06:42:01 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,7 +51,7 @@ typedef struct s_thread_info
 	t_list		**msg_queue;
 }	t_thread_info;
 
-typedef struct s_monitor
+/*typedef struct s_monitor
 {
 	t_list		**msg_queue;
 	pthread_t	thread;
@@ -61,7 +61,7 @@ typedef struct s_monitor
 	pthread_mutex_t	*meal_lock;
 	unsigned int	n_philo;
 }	t_monitor;
-
+*/
 typedef struct s_msg
 {
 	unsigned int	id;

@@ -6,13 +6,13 @@
 #    By: souaguen <marvin@42.fr>                    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/01/31 01:35:37 by souaguen          #+#    #+#              #
-#    Updated: 2024/02/16 04:25:41 by souaguen         ###   ########.fr        #
+#    Updated: 2024/02/16 06:54:28 by souaguen         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 CC=cc
 CFLAGS=-g -pthread #-Weverything
-SRC=main.c \
+SRC=test.c \
     utils.c \
     philo_utils.c
 OBJ=$(SRC:.c=.o)
