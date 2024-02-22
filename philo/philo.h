@@ -6,7 +6,7 @@
 /*   By: souaguen <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/07 19:55:00 by  souaguen         #+#    #+#             */
-/*   Updated: 2024/02/20 08:54:04 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/02/22 02:58:05 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,22 +19,22 @@
 # include <pthread.h>
 # include <unistd.h>
 
-typedef	struct s_list
+typedef struct s_list
 {
-	void		*content;
+	void			*content;
 	struct s_list	*next;
 }	t_list;
 
-typedef struct	s_fork
+typedef struct s_fork
 {
 	pthread_mutex_t	mut;
 	pthread_mutex_t	p_mut;
-	int	free_fork;
+	int				free_fork;
 }	t_fork;
 
 typedef struct s_philo
 {	
-	pthread_t	thread;	
+	pthread_t		thread;	
 	unsigned int	id;
 	unsigned int	time_to_sleep;
 	unsigned int	time_to_eat;
@@ -44,24 +44,26 @@ typedef struct s_philo
 	unsigned long	last_meal;
 	unsigned long	started_at;
 	unsigned int	n_time_eat;
-	int		*deadbeef;
-	pthread_mutex_t	*locked;	
+	pthread_mutex_t	*locked;
 	pthread_mutex_t	*msg_lock;
 	pthread_mutex_t	meal_lock;
-	t_fork		*forks;
-	t_list		**msg_queue;
-	int		*counter;
+	t_fork			*forks;
+	t_list			**msg_queue;
+	int				*deadbeef;
+	int				*counter;
 }	t_philo;
 
 typedef struct s_monitor
 {
-	t_list		**msg_queue;
-	pthread_t	thread;
-	t_philo		*philos;
-	pthread_mutex_t	*locked;	
+	pthread_t		thread;
+	pthread_mutex_t	*locked;
 	pthread_mutex_t	*msg_lock;
 	pthread_mutex_t	*meal_lock;
-	unsigned int	n_philo;
+	t_philo			*philos;	
+	t_list			**msg_queue;	
+	unsigned long	started_at;
+	unsigned int	n_philo;	
+	int				*deadbeef;
 }	t_monitor;
 
 typedef struct s_msg
@@ -71,10 +73,18 @@ typedef struct s_msg
 	unsigned long	timestamp;
 }	t_msg;
 
-unsigned long	get_timestamp_ms();
-void		*fork_init(unsigned int n_philo);
-void		*philo_info_init(int argc, char **argv);
-void		ft_putstr_fd(char *str, int fd);
-void		free_forks(t_fork *forks, int n_forks);
-int		ft_atoi(char *str);
+unsigned long	get_timestamp_ms(void);
+void			precision_sleep(int time_to_sleep);
+void			ft_putstr_fd(char *str, int fd);
+void			free_forks(t_fork *forks, int n_forks);
+void			ft_lstadd_back(t_list **lst, t_list *new);
+void			send_msg(t_philo *self, int status);
+t_philo			*init_philo(int *args);
+t_fork			*init_forks(unsigned int n_philo);
+t_list			*ft_pop(t_list **lst);
+t_list			*ft_lstlast(t_list *lst);
+t_list			*ft_lstnew(void *content);
+int				*check_args(int argc, char **argv);
+int				is_numeric(char *str);
+int				ft_atoi(char *str);
 #endif

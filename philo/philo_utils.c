@@ -6,16 +6,51 @@
 /*   By: souaguen <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/12 00:28:47 by  souaguen         #+#    #+#             */
-/*   Updated: 2024/02/14 16:30:30 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/02/22 03:02:20 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
 
-void	*forks_init(unsigned int n_philo)
+int	*check_args(int argc, char **argv)
 {
 	int	i;
-	t_fork	*forks;
+	int	*args;
+
+	i = 0;
+	args = malloc(sizeof(int) * 5);
+	args[4] = -1;
+	while ((++i) < argc)
+	{
+		args[i - 1] = ft_atoi(argv[i]);
+		if (!is_numeric(argv[i])
+			|| (args[i - 1] >= 1000000 || args[i - 1] <= 0))
+		{
+			free(args);
+			args = NULL;
+			return (NULL);
+		}
+	}
+	return (args);
+}
+
+void	free_forks(t_fork *forks, int n_forks)
+{
+	int	i;
+
+	i = -1;
+	while ((++i) < n_forks)
+	{	
+		pthread_mutex_destroy(&forks[i].p_mut);
+		pthread_mutex_destroy(&forks[i].mut);
+	}
+	free(forks);
+}
+
+t_fork	*init_forks(unsigned int n_philo)
+{
+	t_fork	*forks;	
+	int		i;
 
 	i = -1;
 	forks = malloc(sizeof(t_fork) * n_philo);
@@ -24,57 +59,52 @@ void	*forks_init(unsigned int n_philo)
 	while ((++i) < n_philo)
 	{
 		forks[i].free_fork = 0;
+		pthread_mutex_init(&forks[i].p_mut, NULL);
 		pthread_mutex_init(&forks[i].mut, NULL);
 	}
 	return (forks);
 }
 
-void	*philo_info_init(int argc, char **argv)
+t_philo	*init_philo(int *args)
 {
+	t_philo	*philo;
+	t_fork	*forks;
 	int		i;
-	int		n_philo;
-	t_thread_info	*philo;
-	t_fork		*forks;
 
-	i = -1;
-	n_philo = ft_atoi(argv[1]);
-	philo = malloc(sizeof(t_thread_info) * n_philo);
-	forks = forks_init(n_philo);
-	if (philo == NULL || forks == NULL)
+	philo = malloc(sizeof(t_philo) * args[0]);
+	if (philo == NULL)
 		return (NULL);
-	while ((++i) < n_philo)
+	forks = init_forks(args[0]);
+	if (forks == NULL)
+	{
+		free(philo);
+		return (NULL);
+	}
+	i = -1;
+	while ((++i) < args[0])
 	{
 		philo[i].id = i + 1;
-		philo[i].time_to_die = ft_atoi(argv[2]);
-		philo[i].time_to_eat = ft_atoi(argv[3]);
-		philo[i].time_to_sleep = ft_atoi(argv[4]);
-		philo[i].n_time_eat = -1;
-		philo[i].n_fork = n_philo;
+		philo[i].time_to_die = args[1];
+		philo[i].time_to_eat = args[2];
+		philo[i].time_to_sleep = args[3];
+		philo[i].n_time_eat = args[4];
+		philo[i].n_fork = args[0];
 		philo[i].forks = forks;
-		if (argc == 6)
-			philo[i].n_time_eat = ft_atoi(argv[5]);
-		if (philo[i].time_to_die <= 0 || 
-			philo[i].time_to_eat <= 0 || 
-			philo[i].time_to_sleep <= 0 ||
-			(argc == 6 && ft_atoi(argv[5]) <= 0) ||
-			philo[i].time_to_die >= 100000 ||
-			philo[i].time_to_sleep >= 100000 ||
-			philo[i].time_to_eat >= 100000)
-		{
-			free(philo);
-			free(forks);
-			return (NULL);
-		}
 	}
 	return (philo);
 }
 
-void	free_forks(t_fork *forks, int n_forks)
+void	send_msg(t_philo *self, int status)
 {
-	int	i;
-	
-	i = -1;
-	while ((++i) < n_forks)
-		pthread_mutex_destroy(&forks[i].mut);
-	free(forks);
+	t_msg	*msg;
+
+	msg = malloc(sizeof(t_msg));
+	if (msg == NULL)
+		return ;
+	(*msg).id = (*self).id;
+	(*msg).status = status;
+	pthread_mutex_lock((*self).msg_lock);
+	(*msg).timestamp = get_timestamp_ms();
+	ft_lstadd_back((*self).msg_queue, ft_lstnew(msg));
+	pthread_mutex_unlock((*self).msg_lock);
 }
