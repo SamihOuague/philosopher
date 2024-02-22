@@ -6,12 +6,12 @@
 #    By: souaguen <marvin@42.fr>                    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/01/31 01:35:37 by souaguen          #+#    #+#              #
-#    Updated: 2024/02/22 04:48:17 by souaguen         ###   ########.fr        #
+#    Updated: 2024/02/22 17:23:52 by souaguen         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 CC=gcc
-CFLAGS=-pthread -fthread-jumps -fsanitize=thread #-Weverything
+CFLAGS=-pthread # -fsanitize=thread #-Weverything
 SRC=main.c \
     lst_utils.c \
     philo_utils.c \

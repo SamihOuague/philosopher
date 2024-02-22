@@ -6,7 +6,7 @@
 /*   By: souaguen <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/19 22:13:26 by souaguen          #+#    #+#             */
-/*   Updated: 2024/02/22 03:37:54 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/02/22 17:23:11 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -121,8 +121,10 @@ void	*philo_routine(void *arg)
 		current_fork = next_fork;
 		next_fork = (*self).id - 1;
 	}
+	if ((*self).id % 2 == 0)
+		usleep(10000);
 	while (1)
-	{		
+	{
 		if (think)
 			send_msg(self, 1);
 		pthread_mutex_lock((*self).locked);
@@ -132,6 +134,7 @@ void	*philo_routine(void *arg)
 			break ;
 		}
 		pthread_mutex_unlock((*self).locked);
+		pthread_mutex_lock(&(*self).forks[next_fork].p_mut);
 		pthread_mutex_lock(&(*self).forks[current_fork].mut);
 		if ((*self).n_fork <= 1)
 		{	
@@ -141,6 +144,7 @@ void	*philo_routine(void *arg)
 		}
 		send_msg(self, 0);
 		pthread_mutex_lock(&(*self).forks[next_fork].mut);
+		pthread_mutex_unlock(&(*self).forks[next_fork].p_mut);
 		send_msg(self, 0);
 		checkpoint = get_timestamp_ms();
 		send_msg(self, 2);
