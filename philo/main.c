@@ -6,7 +6,7 @@
 /*   By: souaguen <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/19 22:13:26 by souaguen          #+#    #+#             */
-/*   Updated: 2024/02/22 17:23:11 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/02/25 05:59:02 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -139,7 +139,8 @@ void	*philo_routine(void *arg)
 		if ((*self).n_fork <= 1)
 		{	
 			send_msg(self, 0);
-			pthread_mutex_unlock(&(*self).forks[current_fork].mut);
+			pthread_mutex_unlock(&(*self).forks[current_fork].mut);	
+			pthread_mutex_unlock(&(*self).forks[next_fork].p_mut);
 			return (NULL);
 		}
 		send_msg(self, 0);
