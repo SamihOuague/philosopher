@@ -6,7 +6,7 @@
 /*   By: souaguen <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/19 22:13:26 by souaguen          #+#    #+#             */
-/*   Updated: 2024/02/25 05:59:02 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/02/26 06:49:18 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -110,9 +110,7 @@ void	*philo_routine(void *arg)
 	t_philo			*self;
 	int				current_fork;
 	int				next_fork;
-	int				think;
 
-	think = 1;
 	self = arg;
 	current_fork = (*self).id - 1;
 	next_fork = (*self).id % (*self).n_fork;
@@ -125,8 +123,7 @@ void	*philo_routine(void *arg)
 		usleep(10000);
 	while (1)
 	{
-		if (think)
-			send_msg(self, 1);
+		send_msg(self, 1);
 		pthread_mutex_lock((*self).locked);
 		if (*(*self).deadbeef == 1)
 		{
@@ -147,16 +144,13 @@ void	*philo_routine(void *arg)
 		pthread_mutex_lock(&(*self).forks[next_fork].mut);
 		pthread_mutex_unlock(&(*self).forks[next_fork].p_mut);
 		send_msg(self, 0);
-		checkpoint = get_timestamp_ms();
+		
 		send_msg(self, 2);
 		precision_sleep((*self).time_to_eat);
-		checkpoint = get_timestamp_ms();
 		send_msg(self, 3);
 		pthread_mutex_unlock(&(*self).forks[current_fork].mut);
 		pthread_mutex_unlock(&(*self).forks[next_fork].mut);
-		checkpoint = (get_timestamp_ms() - checkpoint);
-		precision_sleep((*self).time_to_sleep - checkpoint);
-		think = 1;
+		precision_sleep((*self).time_to_sleep);
 	}
 	return (NULL);
 }
@@ -178,14 +172,8 @@ void	run(t_philo *philo)
 	msg_queue = NULL;
 	pthread_mutex_init(&locked, NULL);
 	pthread_mutex_init(&msg_lock, NULL);
-	started_at = get_timestamp_ms();
-	monitor.msg_queue = &msg_queue;
-	monitor.msg_lock = &msg_lock;
-	monitor.n_philo = (*philo).n_fork;
-	monitor.philos = philo;
-	monitor.deadbeef = &deadbeef;
-	monitor.locked = &locked;
-	monitor.started_at = started_at;
+	pthread_mutex_lock(&msg_lock);
+	started_at = get_timestamp_ms();	
 	deadbeef = 0;
 	while ((++i) < (*philo).n_fork)
 	{
@@ -196,8 +184,16 @@ void	run(t_philo *philo)
 		philo[i].deadbeef = &deadbeef;
 		pthread_mutex_init(&philo[i].meal_lock, NULL);
 		pthread_create(&philo[i].thread, NULL, &philo_routine, &philo[i]);
-	}	
-	pthread_create(&monitor.thread, NULL, &monitor_routine, &monitor);
+	}
+	monitor.msg_queue = &msg_queue;
+	monitor.msg_lock = &msg_lock;
+	monitor.n_philo = (*philo).n_fork;
+	monitor.philos = philo;
+	monitor.deadbeef = &deadbeef;
+	monitor.locked = &locked;
+	monitor.started_at = started_at;
+	pthread_create(&monitor.thread, NULL, &monitor_routine, &monitor);	
+	pthread_mutex_unlock(&msg_lock);
 	i = -1;
 	while ((++i) < (*philo).n_fork)
 		pthread_join(philo[i].thread, NULL);
