@@ -6,7 +6,7 @@
 /*   By: souaguen <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/27 06:47:11 by souaguen          #+#    #+#             */
-/*   Updated: 2024/02/27 06:50:21 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/02/27 21:17:16 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,4 +76,39 @@ t_philo	*init_philo(int *args)
 		philo[i].args = args;
 	}
 	return (philo);
+}
+
+void	clean_mem_prog(t_philo *self, t_philo *philo, int n_eat)
+{
+	int		exit_code;
+
+	sem_post((*self).fork_lock);
+	sem_post((*self).forks);
+	sem_post((*self).forks);
+	sem_close((*self).forks);
+	sem_unlink("forks1");
+	free((*self).args);
+	sem_close((*self).msg_lock);
+	sem_unlink("msg_lock");
+	sem_close((*self).fork_lock);
+	sem_unlink("fork_lock");
+	sem_close((*self).die_lock);
+	sem_unlink("die_lock");
+	free(philo);
+	exit_code = 0;
+	if (n_eat != (*self).n_time_eat)
+		exit_code = (*self).id;
+	exit(exit_code);
+}
+
+int	go_to_sleep(t_philo *self)
+{
+	send_msg(self, 3);
+	if ((get_timestamp_ms() - (*self).last_meal) > (*self).time_to_die)
+		return (1);
+	sem_post((*self).forks);
+	sem_post((*self).forks);
+	if (precision_sleep((*self).time_to_sleep, self))
+		return (1);
+	return (0);
 }

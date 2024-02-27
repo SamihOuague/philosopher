@@ -6,13 +6,14 @@
 #    By: souaguen <marvin@42.fr>                    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/01/31 01:35:37 by souaguen          #+#    #+#              #
-#    Updated: 2024/02/27 06:49:02 by souaguen         ###   ########.fr        #
+#    Updated: 2024/02/27 21:18:47 by souaguen         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 CC=gcc
 CFLAGS=-pthread # -fsanitize=thread #-Weverything
 SRC=main.c \
+   philo.c \
    philo_utils.c \
    utils.c \
    time_utils.c
