@@ -6,7 +6,7 @@
 /*   By: souaguen <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/27 05:24:13 by souaguen          #+#    #+#             */
-/*   Updated: 2024/02/27 22:12:38 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/02/27 22:26:10 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -94,23 +94,25 @@ void	*monitor_routine(void *arg)
 	i = -1;
 	self = arg;
 	init_track(&last_meal, &n_time_eat, (*self).n_philo);
-	while (1)
+	while (n_time_eat == NULL || last_meal == NULL)
 	{
 		usleep(100);
 		print_msgs(self, last_meal, n_time_eat);
 		i = check_death(self, last_meal, n_time_eat);
 		if (i == -1 || i == (*self).n_philo)
+		{
+			pthread_mutex_lock((*self).locked);
+			*(*self).deadbeef = 1;
+			pthread_mutex_unlock((*self).locked);
 			break ;
+		}
 		usleep(1000);
 	}
-	pthread_mutex_lock((*self).locked);
-	*(*self).deadbeef = 1;
-	pthread_mutex_unlock((*self).locked);
 	free(last_meal);
 	free(n_time_eat);
 	return (NULL);
 }
-// pthread error management to do
+
 void	create_mon_thread(t_monitor *monitor, t_philo *philo, t_shared *shared)
 {
 	(*monitor).msg_queue = &(*shared).msg_queue;

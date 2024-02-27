@@ -6,7 +6,7 @@
 /*   By: souaguen <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/27 04:25:29 by souaguen          #+#    #+#             */
-/*   Updated: 2024/02/27 22:13:24 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/02/27 22:26:27 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -89,7 +89,7 @@ void	*philo_routine(void *arg)
 	}
 	return (NULL);
 }
-//thread error management to do
+
 void	create_philo_thread(t_philo *philo, t_shared *shared)
 {
 	int	i;
