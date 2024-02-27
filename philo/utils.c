@@ -6,7 +6,7 @@
 /*   By: souaguen <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/07 19:54:41 by  souaguen         #+#    #+#             */
-/*   Updated: 2024/02/22 01:31:40 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/02/27 05:51:46 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,4 +48,19 @@ void	ft_putstr_fd(char *str, int fd)
 	i = -1;
 	while (*(str + (++i)) != '\0')
 		write(fd, (str + i), 1);
+}
+
+void	init_track(unsigned long **last_meal, int **n_time_eat, int size)
+{
+	int	i;
+
+	i = -1;
+	*n_time_eat = malloc(sizeof(int) * size);
+	*last_meal = malloc(sizeof(unsigned long) * size);
+	(*last_meal)[0] = get_timestamp_ms();
+	while ((++i) < size)
+	{
+		(*n_time_eat)[i] = 0;
+		(*last_meal)[i] = *last_meal[0];
+	}
 }
