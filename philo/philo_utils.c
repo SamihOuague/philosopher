@@ -6,7 +6,7 @@
 /*   By: souaguen <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/12 00:28:47 by  souaguen         #+#    #+#             */
-/*   Updated: 2024/02/22 03:02:20 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/02/27 22:14:19 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,8 @@ int	*check_args(int argc, char **argv)
 
 	i = 0;
 	args = malloc(sizeof(int) * 5);
+	if (args == NULL)
+		return (NULL);
 	args[4] = -1;
 	while ((++i) < argc)
 	{
@@ -47,6 +49,7 @@ void	free_forks(t_fork *forks, int n_forks)
 	free(forks);
 }
 
+//error management to do
 t_fork	*init_forks(unsigned int n_philo)
 {
 	t_fork	*forks;	

@@ -6,7 +6,7 @@
 /*   By: souaguen <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/27 05:24:13 by souaguen          #+#    #+#             */
-/*   Updated: 2024/02/27 05:51:30 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/02/27 22:12:38 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -110,7 +110,7 @@ void	*monitor_routine(void *arg)
 	free(n_time_eat);
 	return (NULL);
 }
-
+// pthread error management to do
 void	create_mon_thread(t_monitor *monitor, t_philo *philo, t_shared *shared)
 {
 	(*monitor).msg_queue = &(*shared).msg_queue;
