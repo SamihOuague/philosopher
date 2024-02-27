@@ -6,19 +6,24 @@
 /*   By: souaguen <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/22 01:31:11 by souaguen          #+#    #+#             */
-/*   Updated: 2024/02/22 02:59:03 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/02/27 06:47:00 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
 
-void	precision_sleep(int time_to_sleep)
+int	precision_sleep(int time_to_sleep, t_philo *self)
 {
 	unsigned long	checkpoint;
 
 	checkpoint = get_timestamp_ms();
 	while ((get_timestamp_ms() - checkpoint) < time_to_sleep)
+	{
+		if ((get_timestamp_ms() - (*self).last_meal) > (*self).time_to_die)
+			return (1);
 		usleep(500);
+	}
+	return (0);
 }
 
 unsigned long	get_timestamp_ms(void)

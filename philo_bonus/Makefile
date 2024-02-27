@@ -6,13 +6,16 @@
 #    By: souaguen <marvin@42.fr>                    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/01/31 01:35:37 by souaguen          #+#    #+#              #
-#    Updated: 2024/02/26 04:31:51 by souaguen         ###   ########.fr        #
+#    Updated: 2024/02/27 06:49:02 by souaguen         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 CC=gcc
 CFLAGS=-pthread # -fsanitize=thread #-Weverything
-SRC=main.c 
+SRC=main.c \
+   philo_utils.c \
+   utils.c \
+   time_utils.c
 OBJ=$(SRC:.c=.o)
 NAME=philo_bonus
 
