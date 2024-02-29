@@ -6,7 +6,7 @@
 /*   By: souaguen <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/22 01:31:11 by souaguen          #+#    #+#             */
-/*   Updated: 2024/02/27 06:47:00 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/02/29 06:02:13 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,11 +17,11 @@ int	precision_sleep(int time_to_sleep, t_philo *self)
 	unsigned long	checkpoint;
 
 	checkpoint = get_timestamp_ms();
-	while ((get_timestamp_ms() - checkpoint) < time_to_sleep)
+	while ((int)(get_timestamp_ms() - checkpoint) <= time_to_sleep)
 	{
-		if ((get_timestamp_ms() - (*self).last_meal) > (*self).time_to_die)
+		if ((int)(get_timestamp_ms() - (*self).last_meal) > (*self).time_to_die)
 			return (1);
-		usleep(500);
+		usleep(1000);
 	}
 	return (0);
 }

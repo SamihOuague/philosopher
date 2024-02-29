@@ -6,7 +6,7 @@
 /*   By: souaguen <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/27 21:17:23 by souaguen          #+#    #+#             */
-/*   Updated: 2024/02/27 21:18:16 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/02/29 06:09:42 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,23 +22,22 @@ int	philo_routine(t_philo *self)
 		usleep((*self).time_to_die * 1000);
 		sem_post((*self).forks);
 		return (1);
-	}	
+	}
 	sem_wait((*self).fork_lock);
 	if ((*(*self).die_lock).__align == 0)
 		return (1);
 	if (wait_forks(self))
 		return (1);
 	sem_post((*self).fork_lock);
-	if ((get_timestamp_ms() - (*self).last_meal) > (*self).time_to_die)
+	if ((int)(get_timestamp_ms() - (*self).last_meal) > (*self).time_to_die)
 		return (1);
 	(*self).last_meal = get_timestamp_ms();
 	send_msg(self, 2);
 	if (precision_sleep((*self).time_to_eat, self))
 		return (1);
-	if ((get_timestamp_ms() - (*self).last_meal) > (*self).time_to_die)
+	if ((int)(get_timestamp_ms() - (*self).last_meal) > (*self).time_to_die)
 		return (1);
-	go_to_sleep(self);
-	return (0);
+	return (go_to_sleep(self));
 }
 
 int	philo_proc(t_philo *philo, int index)
@@ -47,18 +46,19 @@ int	philo_proc(t_philo *philo, int index)
 	pid_t	pid;	
 	int		i;
 
-	self = &philo[index];
 	i = 0;
+	self = &philo[index];
 	pid = fork();
-	if ((*self).id % 2 == 0)
-		usleep(1000);
 	if (pid == 0)
 	{
 		i = -1;
+		while ((*(*self).die_lock).__align == 2)
+			usleep(1000);
 		(*self).last_meal = get_timestamp_ms();
 		while ((++i) != (*self).n_time_eat)
-		{	
-			if ((get_timestamp_ms() - (*self).last_meal) > (*self).time_to_die)
+		{
+			if ((int)(get_timestamp_ms() - (*self).last_meal)
+					> (*self).time_to_die)
 				break ;
 			if (philo_routine(self))
 				break ;
@@ -76,11 +76,11 @@ void	init_sem(t_shared *shared, int n_fork)
 	sem_unlink("msg_lock");
 	(*shared).forks = sem_open("forks1", O_CREAT, 0666, n_fork);
 	(*shared).fork_sem = sem_open("fork_lock", O_CREAT, 0666, 1);
-	(*shared).die_sem = sem_open("die_lock", O_CREAT, 0666, 1);
+	(*shared).die_sem = sem_open("die_lock", O_CREAT, 0666, 2);
 	(*shared).msg_sem = sem_open("msg_lock", O_CREAT, 0666, 1);
 }
 
-void	init_philo_sem(t_philo *p, t_shared shrd, unsigned long s_at, int n)
+int	init_philo_sem(t_philo *p, t_shared shrd, unsigned long s_at, int n)
 {
 	int	i;
 
@@ -93,9 +93,17 @@ void	init_philo_sem(t_philo *p, t_shared shrd, unsigned long s_at, int n)
 		p[i].started_at = s_at;
 		p[i].fork_lock = shrd.fork_sem;
 		p[i].die_lock = shrd.die_sem;
-		if (philo_proc(p, i) == 0)
-			break ;
+		if (philo_proc(p, i) == -1)
+		{
+			sem_wait(shrd.die_sem);
+			sem_wait(shrd.die_sem);
+			while ((--i) > 0)
+				waitpid(-1, NULL, 0);
+			return (0);
+		}
 	}
+	sem_wait(shrd.die_sem);
+	return (1);
 }
 
 int	wait_for_philos(t_shared shared, t_philo *philo, int *args)
@@ -113,11 +121,9 @@ int	wait_for_philos(t_shared shared, t_philo *philo, int *args)
 		waitpid(-1, &exit_status, 0);
 		if (WEXITSTATUS(exit_status) != 0 && !deadbeef)
 		{
-			sem_wait(shared.msg_sem);
 			t = get_timestamp_ms() - (*philo).started_at;
 			printf("%ld %d died\n", t, WEXITSTATUS(exit_status));
 			deadbeef = 1;
-			sem_post(shared.msg_sem);
 			sem_wait(shared.die_sem);
 		}
 	}

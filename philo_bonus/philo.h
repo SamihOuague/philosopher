@@ -6,7 +6,7 @@
 /*   By: souaguen <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/27 06:35:03 by souaguen          #+#    #+#             */
-/*   Updated: 2024/02/27 21:20:09 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/02/29 04:48:36 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,8 +81,6 @@ void			ft_putstr_fd(char *str, int fd);
 void			send_msg(t_philo *self, int status);
 void			clean_mem_prog(t_philo *self, t_philo *philo, int n_eat);
 void			init_sem(t_shared *shared, int n_fork);
-void			init_philo_sem(t_philo *p, t_shared shrd,
-					unsigned long s_at, int n);
 void			clear_parent_sem(t_shared shared);
 int				*check_args(int argc, char **argv);
 int				precision_sleep(int time_to_sleep, t_philo *self);
@@ -95,4 +93,7 @@ int				wait_for_philos(t_shared shared, t_philo *philo, int *args);
 int				philo_proc(t_philo *philo, int index);
 int				philo_routine(t_philo *self);
 int				go_to_sleep(t_philo *self);
+int				init_philo_sem(t_philo *p, t_shared shrd,
+					unsigned long s_at, int n);
+
 #endif

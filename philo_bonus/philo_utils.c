@@ -6,7 +6,7 @@
 /*   By: souaguen <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/27 06:47:11 by souaguen          #+#    #+#             */
-/*   Updated: 2024/02/27 21:17:16 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/02/29 06:01:45 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,7 +30,8 @@ void	send_msg(t_philo *self, int status)
 		str = "is eating";
 	else if (status == 3)
 		str = "is sleeping";
-	printf("%ld %d %s\n", t - (*self).started_at, (*self).id, str);
+	if ((*(*self).die_lock).__align != 0)
+		printf("%ld %d %s\n", t - (*self).started_at, (*self).id, str);
 	sem_post((*self).msg_lock);
 }
 
@@ -39,12 +40,10 @@ int	wait_forks(t_philo *self)
 	sem_t	*forks;
 
 	forks = (*self).forks;
-	if ((*forks).__align > (*self).n_fork)
-		return (1);
 	while ((*forks).__align < 2)
 	{
-		if ((get_timestamp_ms() - (*self).last_meal) > (*self).time_to_die)
-			break ;
+		if ((int)(get_timestamp_ms() - (*self).last_meal) > (*self).time_to_die)
+			return (1);
 		usleep(1000);
 	}
 	sem_wait((*self).forks);
@@ -94,17 +93,17 @@ void	clean_mem_prog(t_philo *self, t_philo *philo, int n_eat)
 	sem_unlink("fork_lock");
 	sem_close((*self).die_lock);
 	sem_unlink("die_lock");
-	free(philo);
 	exit_code = 0;
 	if (n_eat != (*self).n_time_eat)
 		exit_code = (*self).id;
+	free(philo);
 	exit(exit_code);
 }
 
 int	go_to_sleep(t_philo *self)
 {
 	send_msg(self, 3);
-	if ((get_timestamp_ms() - (*self).last_meal) > (*self).time_to_die)
+	if ((int)(get_timestamp_ms() - (*self).last_meal) > (*self).time_to_die)
 		return (1);
 	sem_post((*self).forks);
 	sem_post((*self).forks);
