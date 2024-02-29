@@ -6,7 +6,7 @@
 /*   By: souaguen <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/12 00:28:47 by  souaguen         #+#    #+#             */
-/*   Updated: 2024/02/27 22:14:19 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/02/29 01:34:14 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,8 +49,7 @@ void	free_forks(t_fork *forks, int n_forks)
 	free(forks);
 }
 
-//error management to do
-t_fork	*init_forks(unsigned int n_philo)
+t_fork	*init_forks(int n_philo)
 {
 	t_fork	*forks;	
 	int		i;

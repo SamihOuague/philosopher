@@ -6,12 +6,12 @@
 #    By: souaguen <marvin@42.fr>                    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/01/31 01:35:37 by souaguen          #+#    #+#              #
-#    Updated: 2024/02/27 05:31:11 by souaguen         ###   ########.fr        #
+#    Updated: 2024/02/29 01:36:42 by souaguen         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
-CC=gcc
-CFLAGS=-g -pthread # -fsanitize=thread #-Weverything
+CC=cc
+CFLAGS=-Wall -Werror -Wextra -pthread # -fsanitize=thread #-Weverything
 SRC=main.c \
     philo.c \
     monitor.c \

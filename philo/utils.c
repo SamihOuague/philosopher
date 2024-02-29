@@ -6,7 +6,7 @@
 /*   By: souaguen <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/07 19:54:41 by  souaguen         #+#    #+#             */
-/*   Updated: 2024/02/27 22:16:11 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/02/29 01:06:57 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,6 +55,8 @@ void	init_track(unsigned long **last_meal, int **n_time_eat, int size)
 	int	i;
 
 	i = -1;
+	*n_time_eat = NULL;
+	*last_meal = NULL;
 	*n_time_eat = malloc(sizeof(int) * size);
 	if (*n_time_eat == NULL)
 		return ;
@@ -62,6 +64,7 @@ void	init_track(unsigned long **last_meal, int **n_time_eat, int size)
 	if (*last_meal == NULL)
 	{
 		free(*n_time_eat);
+		*n_time_eat = NULL;
 		return ;
 	}
 	(*last_meal)[0] = get_timestamp_ms();

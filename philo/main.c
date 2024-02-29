@@ -6,7 +6,7 @@
 /*   By: souaguen <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/19 22:13:26 by souaguen          #+#    #+#             */
-/*   Updated: 2024/02/27 05:26:19 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/02/29 01:44:30 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,21 +27,23 @@ void	empty_queue(t_list **queue)
 	}
 }
 
-void	run(t_philo *philo)
-{	
+void	run(t_philo *philo, int *args)
+{
 	t_monitor		monitor;
 	t_shared		shared;
 	int				i;
+	int				er;
 
 	if (philo == NULL)
 		return ;
 	i = -1;
-	create_philo_thread(philo, &shared);
-	create_mon_thread(&monitor, philo, &shared);
+	create_philo_thread(philo, &shared, args);
+	er = create_mon_thread(&monitor, philo, &shared);
 	while ((++i) < (*philo).n_fork)
 		pthread_join(philo[i].thread, NULL);
 	i = -1;
-	pthread_join(monitor.thread, NULL);
+	if (!er)
+		pthread_join(monitor.thread, NULL);
 	pthread_mutex_destroy(&shared.locked);
 	pthread_mutex_destroy(&shared.msg_lock);
 	empty_queue(&shared.msg_queue);
@@ -67,7 +69,7 @@ int	main(int argc, char **argv)
 		ft_putstr_fd("Invalid argument !\n", 2);
 		return (1);
 	}
-	run(init_philo(args));
+	run(init_philo(args), args);
 	free(args);
 	return (0);
 }

@@ -6,7 +6,7 @@
 /*   By: souaguen <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/27 05:24:13 by souaguen          #+#    #+#             */
-/*   Updated: 2024/02/27 22:26:10 by souaguen         ###   ########.fr       */
+/*   Updated: 2024/02/29 01:21:18 by souaguen         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -94,26 +94,26 @@ void	*monitor_routine(void *arg)
 	i = -1;
 	self = arg;
 	init_track(&last_meal, &n_time_eat, (*self).n_philo);
-	while (n_time_eat == NULL || last_meal == NULL)
+	while (!(n_time_eat == NULL || last_meal == NULL))
 	{
 		usleep(100);
 		print_msgs(self, last_meal, n_time_eat);
 		i = check_death(self, last_meal, n_time_eat);
 		if (i == -1 || i == (*self).n_philo)
-		{
-			pthread_mutex_lock((*self).locked);
-			*(*self).deadbeef = 1;
-			pthread_mutex_unlock((*self).locked);
 			break ;
-		}
 		usleep(1000);
 	}
-	free(last_meal);
-	free(n_time_eat);
+	pthread_mutex_lock((*self).locked);
+	*(*self).deadbeef = 1;
+	pthread_mutex_unlock((*self).locked);
+	if (last_meal != NULL)
+		free(last_meal);
+	if (n_time_eat != NULL)
+		free(n_time_eat);
 	return (NULL);
 }
 
-void	create_mon_thread(t_monitor *monitor, t_philo *philo, t_shared *shared)
+int	create_mon_thread(t_monitor *monitor, t_philo *philo, t_shared *shared)
 {
 	(*monitor).msg_queue = &(*shared).msg_queue;
 	(*monitor).msg_lock = &(*shared).msg_lock;
@@ -122,6 +122,14 @@ void	create_mon_thread(t_monitor *monitor, t_philo *philo, t_shared *shared)
 	(*monitor).deadbeef = &(*shared).deadbeef;
 	(*monitor).locked = &(*shared).locked;
 	(*monitor).started_at = (*shared).started_at;
-	pthread_create(&(*monitor).thread, NULL, &monitor_routine, monitor);
-	pthread_mutex_unlock(&(*shared).msg_lock);
+	if (pthread_create(&(*monitor).thread, NULL, &monitor_routine, monitor))
+	{
+		empty_queue((*monitor).msg_queue);
+		pthread_mutex_lock((*monitor).locked);
+		*(*monitor).deadbeef = 1;
+		pthread_mutex_unlock((*monitor).locked);
+		pthread_mutex_unlock(&(*shared).msg_lock);
+		return (1);
+	}
+	return (pthread_mutex_unlock(&(*shared).msg_lock));
 }
